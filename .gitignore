@@ -1,7 +1,8 @@
 __pycache__/
 *.pyc
-*.log
-venv/
-.idea/
 allure-results/
 allure-report/
+.idea/
+pytest_cache/
+logs/
+Screenshots/

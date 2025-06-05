@@ -1,53 +1,88 @@
 import pytest
 import allure
-from pages.home_page import HomePage
-from pages.login_page import LoginPage
-from utils.excel_reader import read_excel_data
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-
-@allure.feature("Login")
-@allure.story("Basic Valid Login Test")
+# -----------------------------
+# Test Case 1: Open Login Page
+# -----------------------------
+@allure.feature("Login Page")
+@allure.story("Validate Login Page Loads")
 @pytest.mark.smoke
-@pytest.mark.flaky(reruns=2, reruns_delay=1)  # Optional: retry real failures
-def test_valid_login(driver):
-    home = HomePage(driver)
-    assert home.is_home_loaded(), "Home page did not load properly"
-    home.click_signup_login()
+@pytest.mark.flaky(reruns=1)
+def test_open_login_page(driver):
+    driver.find_element(By.LINK_TEXT, "Signup / Login").click()
+    WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.XPATH, "//h2[text()='Login to your account']"))
+    )
+    heading = driver.find_element(By.XPATH, "//h2[text()='Login to your account']")
+    assert heading.is_displayed()
 
-    login = LoginPage(driver)
-    login.login("testuser@example.com", "wrongpass")  # Replace with real creds if needed
+# ---------------------------------------------------
+# Test Case 2: Invalid Login Shows Error Message
+# ---------------------------------------------------
+@allure.feature("Login Page")
+@allure.story("Invalid Login")
+@pytest.mark.negative
+def test_invalid_login(driver):
+    driver.find_element(By.LINK_TEXT, "Signup / Login").click()
+    driver.find_element(By.NAME, "email").send_keys("invalid@example.com")
+    driver.find_element(By.NAME, "password").send_keys("wrongpass")
+    driver.find_element(By.XPATH, "//button[text()='Login']").click()
+    error = WebDriverWait(driver, 5).until(
+        EC.visibility_of_element_located((By.XPATH, "//p[text()='Your email or password is incorrect!']"))
+    )
+    assert error.is_displayed()
 
-    with allure.step("Check login result for hardcoded user"):
-        if login.is_logout_visible():
-            allure.attach(driver.get_screenshot_as_png(), name="Hardcoded_Login_Success", attachment_type=allure.attachment_type.PNG)
-            assert True
-        elif login.is_login_failed():
-            allure.attach(driver.get_screenshot_as_png(), name="Hardcoded_Login_Failed", attachment_type=allure.attachment_type.PNG)
-            assert True
-        else:
-            allure.attach(driver.get_screenshot_as_png(), name="Hardcoded_Login_Unexpected", attachment_type=allure.attachment_type.PNG)
-            pytest.fail("Unexpected login result")
+# ---------------------------------------------------
+# Test Case 3: Verify Contact Us Page Loads
+# ---------------------------------------------------
+@allure.feature("Contact Page")
+@allure.story("Contact Form Loads")
+@pytest.mark.regression
+def test_contact_us_page(driver):
+    driver.find_element(By.LINK_TEXT, "Contact us").click()
+    WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.XPATH, "//h2[text()='Get In Touch']"))
+    )
+    assert "Get In Touch" in driver.page_source
 
+# ---------------------------------------------------
+# Test Case 4: Navigate to Products and Verify Title
+# ---------------------------------------------------
+@allure.feature("Product Page")
+@allure.story("Product List Loads")
+@pytest.mark.regression
+def test_product_page_load(driver):
+    driver.find_element(By.XPATH, "//a[@href='/products']").click()
+    WebDriverWait(driver, 10).until(
+        EC.title_contains("Automation Exercise - All Products")
+    )
+    assert "All Products" in driver.title
 
-@allure.feature("Login")
-@allure.story("Excel Data-Driven Login Test")
-@pytest.mark.parametrize("data", read_excel_data())
-@pytest.mark.flaky(reruns=2, reruns_delay=1)  # Optional: retry for flaky UI inputs
-def test_login_excel(driver, data):
-    home = HomePage(driver)
-    assert home.is_home_loaded(), "Home page did not load properly"
-    home.click_signup_login()
+# ---------------------------------------------------
+# Test Case 5: Verify Test Cases Menu Navigation
+# ---------------------------------------------------
+@allure.feature("Navigation")
+@allure.story("Test Cases Menu")
+@pytest.mark.regression
+def test_test_cases_menu(driver):
+    driver.find_element(By.LINK_TEXT, "Test Cases").click()
+    WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.XPATH, "//b[text()='Test Cases']"))
+    )
+    assert "Test Cases" in driver.page_source
 
-    login = LoginPage(driver)
-    login.login(data['email'], data['password'])
-
-    with allure.step(f"Testing login with {data['email']} / {data['password']}"):
-        if login.is_logout_visible():
-            allure.attach(driver.get_screenshot_as_png(), name=f"{data['email']}_Login_Success", attachment_type=allure.attachment_type.PNG)
-            assert True
-        elif login.is_login_failed():
-            allure.attach(driver.get_screenshot_as_png(), name=f"{data['email']}_Login_Failed", attachment_type=allure.attachment_type.PNG)
-            assert True
-        else:
-            allure.attach(driver.get_screenshot_as_png(), name=f"{data['email']}_Login_Unexpected", attachment_type=allure.attachment_type.PNG)
-            pytest.fail("Unexpected login result")
+# ---------------------------------------------------
+# Test Case 6: Verify Logo is Clickable and Home Redirects
+# ---------------------------------------------------
+@allure.feature("Header")
+@allure.story("Logo Navigation")
+@pytest.mark.ui
+def test_logo_redirects_to_home(driver):
+    driver.find_element(By.XPATH, "//a[@href='/products']").click()
+    WebDriverWait(driver, 10).until(EC.title_contains("All Products"))
+    driver.find_element(By.XPATH, "//div[@class='logo pull-left']/a").click()
+    WebDriverWait(driver, 10).until(EC.title_is("Automation Exercise"))
+    assert driver.title == "Automation Exercise"

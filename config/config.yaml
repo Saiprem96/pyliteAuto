@@ -1,7 +1,4 @@
-default_env: qa
-
 environments:
   qa:
     base_url: "https://www.automationexercise.com"
-    browser: "chrome"
     headless: false
